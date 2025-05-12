@@ -1,10 +1,10 @@
 [![Build Status](https://dev.azure.com/AzureMigrate-OpenSource/azure-migrate-export/_apis/build/status/Azure.azure-migrate-export?branchName=main)](https://dev.azure.com/AzureMigrate-OpenSource/azure-migrate-export/_build/latest?definitionId=1&branchName=main)
-# <img src="./src/icons/azure_migrate_icon_logo.png" alt="Azure Migrate Icon" style="width:27px; height=27px"> Azure Migrate Export
+# <img src="./src/icons/azure_migrate_icon_logo.png" alt="Azure Migrate Icon" style="width:27px; height=27px"> Azure Migrate Explore
 
-This repository contains the Azure Migrate Export utility package that uses Azure Migrate's discovery and assessment information from and already deployed Azure Migrate project to generate a cohesive presentation for executives.
+This repository contains the Azure Migrate Explore utility package that uses Azure Migrate's discovery and assessment information from and already deployed Azure Migrate project to generate a cohesive presentation for executives.
 
 ## Release
-The following table consists of the link to latest release of the Azure Migrate Export utility
+The following table consists of the link to latest release of the Azure Migrate Explore utility
 
 Description          | Release Link | Download Link
 ---------------------|--------------|--------------
@@ -27,7 +27,7 @@ Refer to the detailed "Azure Migrate Explore" knowledge material from the links 
 3. AME sample reports: https://aka.ms/amesamplereports
 4. AME demo and training video for Partners: https://aka.ms/amedemovideo/partners
 5. AME demo and training video for Sellers: https://aka.ms/amedemovideo/sellers
-5. Download the Azure Migrate Export utility: https://aka.ms/azuremigrateexport 
+5. Download the Azure Migrate Explore utility: https://aka.ms/azuremigrateexport 
 6. Link to Github repo : https://aka.ms/azuremigrateexportutility
 
 ## Reporting Issues and Feedback
@@ -35,7 +35,7 @@ Refer to the detailed "Azure Migrate Explore" knowledge material from the links 
 ### Issues
 If you find any bugs when using Azure Migrate Explore utility, file an issue in our [GitHub repository][GithubRepositoryIssues]. Please fill out the issue template with the appropriate information.
 
-Alternatively, see [Azure Community Suppport][AzureCommunitySupportLink], if you have any issues with Azure Migrate Export or Azure Migrate Services.
+Alternatively, see [Azure Community Suppport][AzureCommunitySupportLink], if you have any issues with Azure Migrate Explore or Azure Migrate Services.
 
 For any bugs that need urgent escalation, please write to us @ amesupport@microsoft.com
 
@@ -64,11 +64,11 @@ This project welcomes contributions and suggestions. Most contributions require 
 When you submit a pull request, a CLA-bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repositories using our CLA.
 
 ## Telemetry
-The data collected during the execution of Azure Migrate Export utility is the same as data collected by Azure Migrate during creation of Groups and Assessments via the portal. For further information, please read [Azure Migrate Documentaion][AzureMigrateDocumentationLink].
+The data collected during the execution of Azure Migrate Explore utility is the same as data collected by Azure Migrate during creation of Groups and Assessments via the portal. For further information, please read [Azure Migrate Documentaion][AzureMigrateDocumentationLink].
 This data helps us gauge the usability of the tool by counting the number of assessments that were created and the number of assessments that computed successfully.
 
 ## License
-Azure Migrate Export utility is licensed under the [MIT][License] License
+Azure Migrate Explore utility is licensed under the [MIT][License] License
 
 License and usage information for Third-party Open Source softwares can be found at [`NOTICE.md`][NoticeMarkDown].
 
