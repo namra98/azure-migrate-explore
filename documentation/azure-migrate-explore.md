@@ -214,10 +214,10 @@ To find other parameters required for running discovery and assessment, follow t
 - Company profile: outlines the organization's background and objectives.
 - Migration details: covers the specifics of the migration plan including timelines, resources, and expected challenges.
 -	AI opportunities: identifies potential areas where AI can enhance the migration process or future operations.
+![Screenshot of Generate AI summaries screen.](./.media/GenerateAIsummary.png)
 -	To review the summary:
 -	Go to the "Review Summary" tab where you will find three sections: Company profile, Migration details, and AI opportunities.
-
-
+![Screenshot of review AI summaries screen.](./.media/ReviewAISummary.png)
 
 
 
@@ -379,7 +379,6 @@ The details of each slide in data populated PowerBI report is as follows:
 Open the location where you installed the Azure Migrate Explore Utility Package and copy the path of folder where all the discovery and assessment reports are present.
 Basepath for the example below is E:\AzMigExplore.
 
-![Screenshot of sample base path.](./.media/file-path.png)
  
 ### I can’t find the publish button on the PowerBI desktop application.
 The **Publish** button is available on the top-right of the home tab in PowerBI export. Publish facility is not available for users having Free PowerBI license. Such users can do customizations and export PowerBI as PDF.
