@@ -28,8 +28,6 @@ namespace Azure.Migrate.Export.Excel
         private readonly List<AVS_Summary> AVS_Summary_List;
         private readonly List<AVS_IaaS_Rehost_Perf> AVS_IaaS_Rehost_Perf_List;
         private readonly List<Decommissioned_Machines> Decommissioned_Machines_List;
-        private readonly List<EmissionsDetails> EmissionsDetailsList;
-        private readonly List<YOY_Emissions> YOY_EmissionsList;
 
         XLWorkbook CoreWb;
 
@@ -54,10 +52,7 @@ namespace Azure.Migrate.Export.Excel
                 Cash_Flows cash_Flows_Data,
                 List<AVS_Summary> avs_Summary_List,
                 List<AVS_IaaS_Rehost_Perf> avs_IaaS_Rehost_Perf_List,
-                List<Decommissioned_Machines> decommissioned_Machines_List,
-                List<EmissionsDetails> emissionsDetailsList,
-                List<YOY_Emissions> yoy_EmissionsList
-
+                List<Decommissioned_Machines> decommissioned_Machines_List
             )
         {
             CorePropertiesObj = corePropertiesObj;
@@ -80,8 +75,6 @@ namespace Azure.Migrate.Export.Excel
             AVS_Summary_List = avs_Summary_List;
             AVS_IaaS_Rehost_Perf_List = avs_IaaS_Rehost_Perf_List;
             Decommissioned_Machines_List = decommissioned_Machines_List;
-            EmissionsDetailsList = emissionsDetailsList;
-            YOY_EmissionsList = yoy_EmissionsList;
 
             CoreWb = new XLWorkbook();
         }
@@ -108,9 +101,7 @@ namespace Azure.Migrate.Export.Excel
             Generate_AVS_Summary_Worksheet();
             Generate_AVS_IaaS_Server_Rehost_Perf_Worksheet();
             Generate_Decommissioned_Machines_Worksheet();
-            Generate_YOY_Emissions_Worksheet();
-            Generate_Emissions_Details_Worksheet();
-
+            
             CoreWb.SaveAs(CoreReportConstants.CoreReportPath);
         }
 
@@ -247,7 +238,7 @@ namespace Azure.Migrate.Export.Excel
 
             for (int i = 0; i < CoreReportConstants.Cash_Flows_Years.Count; i++)
                 dataWs.Cell(1, i + 3).Value = CoreReportConstants.Cash_Flows_Years[i];
-
+            
             for (int i = 0; i < CoreReportConstants.Cash_Flows_CloudComputingServiceTypes.Count; i++)
             {
                 dataWs.Cell(3 * i + 2, 1).Value = CoreReportConstants.Cash_Flows_CloudComputingServiceTypes[i];
@@ -469,7 +460,7 @@ namespace Azure.Migrate.Export.Excel
             if (SQL_All_Instances_List != null && SQL_All_Instances_List.Count > 0)
                 dataWs.Cell(2, 1).InsertData(SQL_All_Instances_List);
         }
-
+        
         private void Generate_All_VM_IaaS_Server_Rehost_Perf_Worksheet()
         {
             var dataWs = CoreWb.Worksheets.Add(CoreReportConstants.All_VM_IaaS_Server_Rehost_Perf_TabName, 15);
@@ -508,22 +499,6 @@ namespace Azure.Migrate.Export.Excel
 
             if (Decommissioned_Machines_List != null & Decommissioned_Machines_List.Count > 0)
                 dataWs.Cell(2, 1).InsertData(Decommissioned_Machines_List);
-        }
-
-        private void Generate_YOY_Emissions_Worksheet()
-        {
-            var dataWs = CoreWb.Worksheets.Add(CoreReportConstants.YOY_Emissions_TabName, 19);
-            UtilityFunctions.AddColumnHeadersToWorksheet(dataWs, CoreReportConstants.YOY_Emissions_Columns);
-            if (YOY_EmissionsList != null && YOY_EmissionsList.Count > 0)
-                dataWs.Cell(2, 1).InsertData(YOY_EmissionsList);
-        }
-
-        private void Generate_Emissions_Details_Worksheet()
-        {
-            var dataWs = CoreWb.Worksheets.Add(CoreReportConstants.Emissions_Details_TabName, 20);
-            UtilityFunctions.AddColumnHeadersToWorksheet(dataWs, CoreReportConstants.Emissions_Details_Columns);
-            if (EmissionsDetailsList != null && EmissionsDetailsList.Count > 0)
-                dataWs.Cell(2, 1).InsertData(EmissionsDetailsList);
         }
     }
 }
