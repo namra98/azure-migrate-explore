@@ -111,7 +111,6 @@ namespace Azure.Migrate.Export.Common
         Standard,
         StandardSSD,
         Premium,
-        PremiumV2,
         StandardOrPremium,
         Ultra
     }
