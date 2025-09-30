@@ -189,69 +189,6 @@ namespace Azure.Migrate.Explore.HttpRequestHelper
 
             return response;
         }
-
-        public async Task<HttpResponseMessage> GetHttpResponseForARGQuery(UserInput userInputObj, string bodyContent)
-        {
-            if (userInputObj.CancellationContext.IsCancellationRequested)
-                UtilityFunctions.InitiateCancellation(userInputObj);
-
-            NumberOfTries++;
-            AuthenticationResult authResult = null;
-            HttpResponseMessage response;
-            bool isException = false;
-            try
-            {
-                authResult = await AzureAuthenticationHandler.RetrieveAuthenticationToken();
-            }
-            catch (Exception exCacheTokenRetrieval)
-            {
-                throw new Exception($"Cached token retrieval failed: {exCacheTokenRetrieval.Message} Please re-login");
-            }
-
-            try
-            {
-                HttpClient httpClient = new HttpClient()
-                {
-                    Timeout = TimeSpan.FromSeconds(60),
-                };
-
-                Uri baseAddress = new Uri(Routes.ArgUri);
-                string clientRequestId = Guid.NewGuid().ToString();
-
-                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + authResult.AccessToken);
-                httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
-                httpClient.DefaultRequestHeaders.Add("x-ms-client-request-id", clientRequestId + "-" + "-azmigexp");
-
-                byte[] buffer = Encoding.UTF8.GetBytes(bodyContent);
-                ByteArrayContent byteContent = new ByteArrayContent(buffer);
-                byteContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-
-                response = await httpClient.PostAsync(baseAddress, byteContent);
-            }
-            catch (Exception exGeneralGetHttpRequest)
-            {
-                isException = true;
-                if (NumberOfTries < HttpUtilities.MaxInformationDataRetries && HttpUtilities.IsRetryNeeded(null, exGeneralGetHttpRequest))
-                {
-                    userInputObj.LoggerObj.LogWarning($"HTTP POST request to url: {Routes.ArgUri} error: {exGeneralGetHttpRequest.Message} Will try again after 1 minute");
-                    Thread.Sleep(60000);
-                    response = await GetHttpResponseForARGQuery(userInputObj, bodyContent);
-                }
-                else
-                    throw;
-            }
-
-            if (!isException)
-            {
-                if ((response == null || !response.IsSuccessStatusCode) && HttpUtilities.IsRetryNeeded(response, null) && NumberOfTries < HttpUtilities.MaxInformationDataRetries)
-                {
-                    userInputObj.LoggerObj.LogWarning($"HTTP POST request to url {Routes.ArgUri} failed: {response.StatusCode}: {response.Content} Will try again after 1 minute");
-                    Thread.Sleep(60000);
-                    response = await GetHttpResponseForARGQuery(userInputObj, bodyContent);
-                }
-            }
-            return response;
-        }
         #endregion
 
         #region Group creation and updation
@@ -577,8 +514,8 @@ namespace Azure.Migrate.Explore.HttpRequestHelper
                 throw new Exception($"HTTP create assessment {assessmentInfo.AssessmentName} response was not successful: {createResponse.StatusCode}: {createResponseContent}");
             }
 
-            else if (createResponse.StatusCode != HttpStatusCode.Created)
-                throw new Exception($"Received response for assessment {assessmentInfo.AssessmentName}: {createResponse.StatusCode} is not as expected: {HttpStatusCode.Created}");
+            else if (createResponse.StatusCode != HttpStatusCode.Created && createResponse.StatusCode != HttpStatusCode.OK)
+                throw new Exception($"Received response for assessment {assessmentInfo.AssessmentName}: {createResponse.StatusCode} is not as expected: {HttpStatusCode.Created} or {HttpStatusCode.OK}");
 
             userInputObj.LoggerObj.LogInformation($"Assessment {assessmentInfo.AssessmentName} created in group {assessmentInfo.GroupName}");
 
@@ -625,6 +562,17 @@ namespace Azure.Migrate.Explore.HttpRequestHelper
                              new EnumDescriptionHelper().GetEnumDescription(assessmentInfo.AssessmentType) + Routes.ForwardSlash + assessmentInfo.AssessmentName +
                              Routes.QueryStringQuestionMark +
                              Routes.QueryParameterApiVersion + Routes.QueryStringEquals + apiVersion;
+                if (assessmentInfo.AssessmentType == AssessmentType.AVSAssessment)
+                {
+                    url = Routes.ProtocolScheme + Routes.AzureManagementApiHostname + Routes.ForwardSlash +
+                          Routes.SubscriptionPath + Routes.ForwardSlash + userInputObj.Subscription.Key + Routes.ForwardSlash +
+                          Routes.ResourceGroupPath + Routes.ForwardSlash + userInputObj.ResourceGroupName.Value + Routes.ForwardSlash +
+                          Routes.ProvidersPath + Routes.ForwardSlash + Routes.MigrateProvidersPath + Routes.ForwardSlash +
+                          Routes.AssessmentProjectsPath + Routes.ForwardSlash + userInputObj.AssessmentProjectName + Routes.ForwardSlash +
+                          new EnumDescriptionHelper().GetEnumDescription(assessmentInfo.AssessmentType) + Routes.ForwardSlash + assessmentInfo.AssessmentName +
+                          Routes.QueryStringQuestionMark +
+                          Routes.QueryParameterApiVersion + Routes.QueryStringEquals + apiVersion;
+                }
                 Uri baseAddress = new Uri(url);
                 string clientRequestId = Guid.NewGuid().ToString();
                 httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + authResult.AccessToken);
@@ -702,6 +650,17 @@ namespace Azure.Migrate.Explore.HttpRequestHelper
                              new EnumDescriptionHelper().GetEnumDescription(assessmentInfo.AssessmentType) + Routes.ForwardSlash + assessmentInfo.AssessmentName +
                              Routes.QueryStringQuestionMark +
                              Routes.QueryParameterApiVersion + Routes.QueryStringEquals + Routes.AssessmentMachineListApiVersion;
+                if (assessmentInfo.AssessmentType == AssessmentType.AVSAssessment)
+                {
+                    url = Routes.ProtocolScheme + Routes.AzureManagementApiHostname + Routes.ForwardSlash +
+                          Routes.SubscriptionPath + Routes.ForwardSlash + userInputObj.Subscription.Key + Routes.ForwardSlash +
+                          Routes.ResourceGroupPath + Routes.ForwardSlash + userInputObj.ResourceGroupName.Value + Routes.ForwardSlash +
+                          Routes.ProvidersPath + Routes.ForwardSlash + Routes.MigrateProvidersPath + Routes.ForwardSlash +
+                          Routes.AssessmentProjectsPath + Routes.ForwardSlash + userInputObj.AssessmentProjectName + Routes.ForwardSlash +
+                          new EnumDescriptionHelper().GetEnumDescription(assessmentInfo.AssessmentType) + Routes.ForwardSlash + assessmentInfo.AssessmentName +
+                          Routes.QueryStringQuestionMark +
+                          Routes.QueryParameterApiVersion + Routes.QueryStringEquals + Routes.AvsAssessmentApiVersion;
+                }
                 Uri baseAddress = new Uri(url);
                 string clientRequestId = Guid.NewGuid().ToString();
                 httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + authResult.AccessToken);
@@ -720,25 +679,47 @@ namespace Azure.Migrate.Explore.HttpRequestHelper
                 }
 
                 string responseContent = await response.Content.ReadAsStringAsync();
-                AssessmentInformationJSON assessmentInformationObj = JsonConvert.DeserializeObject<AssessmentInformationJSON>(responseContent);
+                if (assessmentInfo.AssessmentType == AssessmentType.AVSAssessment)
+                {
+                    AvsAssessmentInformationJSON avsAssessmentInformationObj = JsonConvert.DeserializeObject<AvsAssessmentInformationJSON>(responseContent);
+                    if (avsAssessmentInformationObj.Properties.Details.Status.Equals("Completed"))
+                    {
+                        userInputObj.LoggerObj.LogInformation($"Assessment {assessmentInfo.AssessmentName} completed");
+                        return AssessmentPollResponse.Completed;
+                    }
+                    else if (avsAssessmentInformationObj.Properties.Details.Status.Equals("OutDated"))
+                    {
+                        userInputObj.LoggerObj.LogWarning($"Assessment {assessmentInfo.AssessmentName} became out-dated during computation");
+                        return AssessmentPollResponse.OutDated;
+                    }
+                    else if (avsAssessmentInformationObj.Properties.Details.Status.Equals("Invalid"))
+                    {
+                        userInputObj.LoggerObj.LogError($"Assessment {assessmentInfo.AssessmentName} is invalid, corresponding datapoints will contain default values");
+                        return AssessmentPollResponse.Invalid;
+                    }
+                    userInputObj.LoggerObj.LogInformation($"Assessment {assessmentInfo.AssessmentName} status is {avsAssessmentInformationObj.Properties.Details.Status}");
+                }
+                else
+                {
+                    AssessmentInformationJSON assessmentInformationObj = JsonConvert.DeserializeObject<AssessmentInformationJSON>(responseContent);
+                    if (assessmentInformationObj.Properties.Status.Equals("Completed"))
+                    {
+                        userInputObj.LoggerObj.LogInformation($"Assessment {assessmentInfo.AssessmentName} completed");
+                        return AssessmentPollResponse.Completed;
+                    }
+                    else if (assessmentInformationObj.Properties.Status.Equals("OutDated"))
+                    {
+                        userInputObj.LoggerObj.LogWarning($"Assessment {assessmentInfo.AssessmentName} became out-dated during computation");
+                        return AssessmentPollResponse.OutDated;
+                    }
+                    else if (assessmentInformationObj.Properties.Status.Equals("Invalid"))
+                    {
+                        userInputObj.LoggerObj.LogError($"Assessment {assessmentInfo.AssessmentName} is invalid, corresponding datapoints will contain default values");
+                        return AssessmentPollResponse.Invalid;
+                    }
 
-                if (assessmentInformationObj.Properties.Status.Equals("Completed"))
-                {
-                    userInputObj.LoggerObj.LogInformation($"Assessment {assessmentInfo.AssessmentName} completed");
-                    return AssessmentPollResponse.Completed;
+                    userInputObj.LoggerObj.LogInformation($"Assessment {assessmentInfo.AssessmentName} status is {assessmentInformationObj.Properties.Status}");
                 }
-                else if (assessmentInformationObj.Properties.Status.Equals("OutDated"))
-                {
-                    userInputObj.LoggerObj.LogWarning($"Assessment {assessmentInfo.AssessmentName} became out-dated during computation");
-                    return AssessmentPollResponse.OutDated;
-                }
-                else if (assessmentInformationObj.Properties.Status.Equals("Invalid"))
-                {
-                    userInputObj.LoggerObj.LogError($"Assessment {assessmentInfo.AssessmentName} is invalid, corresponding datapoints will contain default values");
-                    return AssessmentPollResponse.Invalid;
-                }
-
-                userInputObj.LoggerObj.LogInformation($"Assessment {assessmentInfo.AssessmentName} status is {assessmentInformationObj.Properties.Status}");
 
                 return AssessmentPollResponse.NotCompleted;
             }
