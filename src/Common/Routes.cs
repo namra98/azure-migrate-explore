@@ -39,8 +39,8 @@ namespace Azure.Migrate.Explore.Common
         public const string AssessmentProjectImportFilterPath = @"&%24filter=contains(Properties/DiscoveryMachineArmId%2C'ImportSites')";
         public const string CreateGroupApiVersion = @"2019-10-01";
         public const string ProjectDetailsApiVersion = @"2020-05-01";
-        public const string MasterSiteApiVersion = @"2020-11-11-preview";
-        public const string DiscoverySitesApiVersion = @"2020-08-01-preview";
+        public const string MasterSiteApiVersion = @"2024-05-01-preview";
+        public const string DiscoverySitesApiVersion = @"2024-12-01-preview";
         public const string ImportSitesApiVersion = @"2023-06-06";
         public const string AssessmentMachineListApiVersion = @"2024-01-15";
         public const string AvsAssessmentApiVersion = @"2025-09-09-preview";
