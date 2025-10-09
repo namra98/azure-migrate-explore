@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 using System.Collections.Generic;
 using System;
@@ -638,6 +638,9 @@ namespace Azure.Migrate.Explore.Common
             "Recommended FttRaidLevel",
             "Recommended External Storage",
             "Monthly Total Cost Estimate",
+            "Monthly AVS External Storage Cost",
+            "Monthly AVS Node Cost",
+            "Monthly AVS External Network Cost",
             "Predicted CPU Utilization (in %)",
             "Predicted Memory Utilization (in %)",
             "Predicted Storage Utilization (in %)",
