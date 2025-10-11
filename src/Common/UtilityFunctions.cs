@@ -409,6 +409,12 @@ namespace Azure.Migrate.Explore.Common
         /// <param name="worksheet">Excel worksheet to populate with headers and data</param>
         private static void WriteJsonArrayToWorksheetWithFlattening(JArray jsonArray, IXLWorksheet worksheet)
         {
+            if (jsonArray == null || jsonArray.Count == 0)
+            {
+                Console.WriteLine("No data found in JSON array");
+                return;
+            }
+
             // Flatten the first object to determine all possible column names
             var firstItem = jsonArray[0] as JObject;
             if (firstItem != null)

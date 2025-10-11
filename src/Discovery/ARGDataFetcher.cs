@@ -96,7 +96,7 @@ namespace AzureMigrateExplore.Discovery
                 if (!response.IsSuccessStatusCode)
                 {
                     string errorContent = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"ARG Software Vulnerabilities query failed: {response.StatusCode}: {errorContent}");
+                    throw new Exception($"ARG query failed: {response.StatusCode}: {errorContent}");
                 }
 
                 // Parse response
