@@ -2,6 +2,7 @@ using Azure.Migrate.Explore.Common;
 using Azure.Migrate.Explore.HttpRequestHelper;
 using Azure.Migrate.Explore.Models;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -75,6 +76,230 @@ namespace AzureMigrateExplore.Discovery
                 | order by tolower(resourceName) asc
                 | project id, parentId, resourceName, resourceType, edition, version, properties.dependencyMapping, properties.productSupportStatus.supportStatus, discoverySource, source, properties.tags, properties, dbProperties, properties.numberOfProcessorCore, memoryInMB, diskCount, totalSizeInGB, osType, supportEndsIn, powerOnStatus, siteId, dbProperties.status, dbProperties.numberOfUserDatabases, dbhadrConfiguration, depmapErrorCount, properties.dependencyMapDiscovery.discoveryScopeStatus, properties.autoEnableDependencyMapping, ipAddressList, totalDatabaseInstances, totalWebAppCount, webServerId, webServerVersion, webServerType
                 | project-rename armId=id, dependencyMapping=properties_dependencyMapping, supportStatus=properties_productSupportStatus_supportStatus, resourceTags=properties_tags, cores=properties_numberOfProcessorCore, dbEngineStatus=dbProperties_status, userdatabases=dbProperties_numberOfUserDatabases, depMapDiscoveryScopeStatus=properties_dependencyMapDiscovery_discoveryScopeStatus, autoEnableDependencyMapping=properties_autoEnableDependencyMapping";
+
+        private static string WebAppTomCatSupportStatus = @"
+                migrateresources
+                | where type contains ""microsoft.offazure/mastersites/webappsites/tomcatwebservers""
+                | where {0}
+                | extend webApps = properties.webApplications
+                | extend normalizedJvmVersion = extract(@""(\d+\.\d+\.\d+)"", 1, tostring(properties.jvmVersion))
+                | project serverId = id, serverName = name,
+                          serverType = properties.serverType,
+                          tomcatVersion = properties.version,
+                          jvmVersion = normalizedJvmVersion,  machineId = tostring(split(properties.machineIds[0], ""/"")[10]),
+                          webApps
+                | mv-expand webAppId = webApps
+                | extend webAppId = coalesce(tostring(webAppId['id']), tostring(webAppId))
+                | where isnotempty(webAppId)
+                | join kind=leftouter (
+                    migrateresources
+                    | where type contains ""microsoft.offazure/mastersites/webappsites/tomcatwebapplications""
+                    | extend webAppId = id
+                    | project webAppId, webAppName = name,
+                              displayName = properties.displayName,
+                              webServerName = properties.webServerName,
+                              frameworks = properties.frameworks
+                ) on webAppId
+                | join kind=leftouter (
+                    machinesinventoryinsightsresources
+                    | where type =~ ""microsoft.offazure/vmwaresites/machines/inventoryinsights/software""
+                    | where {1} // Update with customer subscription
+                    | extend softwareType = case(
+                        properties.softwareName has ""tomcat"", ""Tomcat"",
+                        properties.softwareName has ""Jre-"", ""JVM"",
+                        ""Other""
+                    )
+                    | where softwareType in (""Tomcat"", ""JVM"")
+                    | extend normalizedJvmVersion = extract(@""(\d+\.\d+\.\d+)"", 1, tostring(properties.version))
+                    | project machineId = tostring(split(id, ""/"")[10]), softwareType,
+                              supportStatus = properties.supportStatus,
+                              version = tostring(properties.version),
+                              softwareName = tostring(properties.softwareName),
+                              providerName =  tostring(properties.provider)
+                ) on $left.machineId  == $right.machineId
+                | summarize tomcatSupportStatus = anyif(supportStatus, softwareType == ""Tomcat"" and version == tostring(tomcatVersion)),
+                            jvmSupportStatus = anyif(supportStatus, softwareType == ""JVM"" and version == tostring(jvmVersion))
+                            by serverId, webAppId, serverName, tostring(serverType), tostring(tomcatVersion), jvmVersion, webAppName, tostring(displayName), tostring(webServerName), tostring(frameworks), machineId, tostring(providerName)
+                | extend tomcatSupportStatus = case(
+                    isnotempty(tomcatSupportStatus), tomcatSupportStatus,
+                    tomcatVersion startswith ""9."", ""Supported"",
+                    tomcatVersion startswith ""10.1"", ""Supported"",
+                    tomcatVersion startswith ""10.0"", ""NotSupported"",
+                    tomcatVersion startswith ""11.0"", ""Supported"",
+                    tomcatVersion startswith ""8."", ""NotSupported"",
+                    tomcatVersion startswith ""7."", ""NotSupported"",
+                    tomcatVersion startswith ""6."", ""NotSupported"",
+                    tomcatVersion startswith ""5."", ""NotSupported"",
+                    ""Unknown""
+                )
+                | project serverId, webAppId, serverName, webAppName, serverType, displayName, tomcatVersion, jvmVersion, machineId, providerName, tomcatSupportStatus, jvmSupportStatus, IISSupportStatus=""NA"", IISframeworkName=""NA"", IISframeworkVersion=""NA""";
+
+        private static string WebAppIISSupportStatus = @"
+                migrateresources
+                | where type contains ""microsoft.offazure/mastersites/webappsites/iiswebservers""
+                | where {0}
+                | extend serverId = id
+                | project serverId, serverName = name, serverVersion = properties.version, displayName = properties.displayName
+                // Join with IIS Web Applications
+                | join kind=leftouter (
+                    migrateresources
+                    | where type contains ""microsoft.offazure/mastersites/webappsites/iiswebapplications""
+                    | where {1} // Update with customer subscription
+                    | extend serverId = tostring(properties.webServerId)
+                    | project serverId, webAppId = id, webAppName = name, displayNameApp = properties.displayName, serverType = properties.serverType, frameworks = properties.frameworks, properties.machineArmIds,  machineId = tostring(split(properties.machineArmIds[0], ""/"")[10])
+                ) on serverId
+                | join kind=leftouter (
+                    machinesinventoryinsightsresources
+                    | where type =~ ""microsoft.offazure/hypervsites/machines/inventoryinsights/software"" // change it to respective fabric site
+                    | where {2} // Update with customer subscription
+                    | extend softwareType = case(
+                        properties.softwareName contains "".net framework"", ""NETRUNTIME"",
+                        ""Other""
+                    )
+                   | where softwareType in (""NETRUNTIME"")
+                   | project machineId = tostring(split(id, ""/"")[10]), softwareType,
+                              supportStatus = properties.supportStatus,
+                              version = tostring(properties.version),
+                              softwareName = tostring(properties.softwareName),
+                              providerName =  tostring(properties.provider)
+                ) on $left.machineId  == $right.machineId
+                | extend frameworkName = tostring(frameworks[0].name),
+                         frameworkVersion = tostring(frameworks[0].version),
+                         inventoryMajor = todouble(extract(@""^(\d+\.\d+)"", 1, version))
+                | extend normalizedSupportStatus = iff(supportStatus == ""Unknown"" or isempty(supportStatus), """", supportStatus)      
+                | extend supportStatus = case(
+                    isnotempty(normalizedSupportStatus), normalizedSupportStatus,
+                    frameworkName contains "".NET"" and frameworkVersion contains ""4.0"" and inventoryMajor > 5.0, ""Supported"",
+                    frameworkName contains "".NET"" and frameworkVersion contains ""4.0"" and tostring(version) contains ""4.6.2"", ""Supported"",
+                    frameworkName contains "".NET"" and frameworkVersion contains ""4.0"" and inventoryMajor > 4.6, ""Supported"",
+                    frameworkName contains "".NET"" and frameworkVersion contains ""4.0"" and (inventoryMajor < 4.0 or inventoryMajor == 4.0 or inventoryMajor == 4.5 or inventoryMajor < 4.6), ""NotSupported"",
+                    frameworkName contains "".NET"" and frameworkVersion startswith ""3."" , ""NotSupported"",
+                    frameworkName contains "".NET"" and frameworkVersion startswith ""2."" , ""NotSupported"",
+                    ""Unknown""
+                )
+                | project serverId, webAppId, serverName, webAppName, serverType, displayName, tomcatVersion=""NA"", jvmVersion=""NA"", machineId, providerName, tomcatSupportStatus=""NA"", jvmSupportStatus=""NA"", IISSupportStatus=supportStatus, IISframeworkName=frameworkName, IISframeworkVersion=frameworkVersion";
+
+        public static async Task<string> GetWebAppSupportStatusAsync(
+            UserInput userInputObj,
+            string[] subscriptions,
+            List<string> webAppSiteUrls)
+        {
+            string webAppIIS = await GetWebAppIISSupportStatusAsync(userInputObj, subscriptions, webAppSiteUrls);
+            string webAppTomcat = await GetWebAppTomCatSupportStatusAsync(userInputObj, subscriptions, webAppSiteUrls);
+
+            if(string.IsNullOrEmpty(webAppIIS) && string.IsNullOrEmpty(webAppTomcat))
+            {
+                return string.Empty;
+            }
+
+            if (string.IsNullOrEmpty(webAppIIS))
+            {
+                return webAppTomcat;
+            }
+
+            if (string.IsNullOrEmpty(webAppTomcat))
+            {
+                return webAppIIS;
+            }
+
+            try
+            {
+                // Parse the JSON into JObject
+                JObject obj1 = JObject.Parse(webAppIIS);
+                JObject obj2 = JObject.Parse(webAppTomcat);
+
+                // Get the 'data' arrays
+                JArray data1 = (JArray)obj1["data"];
+                JArray data2 = (JArray)obj2["data"];
+
+                data1.Merge(data2);
+                obj1["totalRecords"] = data1.Count();
+                obj1["count"] = data1.Count();
+
+                return obj1.ToString();
+            }
+            catch (Exception ex)
+            {
+                userInputObj.LoggerObj?.LogError($"Failed to merge WebApp supportability data from ARG: {ex.Message}");
+                userInputObj.LoggerObj?.LogDebug($"Full exception details: {ex}");
+            }
+
+            return string.Empty;
+        }
+
+        public static async Task<string> GetWebAppTomCatSupportStatusAsync(
+            UserInput userInputObj,
+            string[] subscriptions,
+            List<string> webAppSiteUrls)
+        {
+            var idHasSub = string.Join(" or ", subscriptions.Select(id => $"id has \"{id}\""));
+            var idHas = string.Join(" or ", webAppSiteUrls.Select(id => $"id has \"{id}\""));
+
+            var query = string.Format(WebAppTomCatSupportStatus, idHas, idHasSub);
+            var argPayload = CreateArgPayload(subscriptions, query);
+
+            try
+            {
+                // Execute query
+                var httpHelper = new HttpClientHelper();
+                HttpResponseMessage response = await httpHelper.GetHttpResponseForARGQuery(userInputObj, argPayload);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"ARG query failed: {response.StatusCode}: {errorContent}");
+                }
+                
+                // Parse response
+                string jsonResponse = await response.Content.ReadAsStringAsync();
+                return jsonResponse;
+            }
+            catch (Exception ex)
+            {
+                // Treating as non-fatal for now.
+                userInputObj.LoggerObj?.LogError($"Failed to execute ARG Query: {ex.Message}");
+                userInputObj.LoggerObj?.LogDebug($"Full exception details: {ex}");
+            }
+
+            return string.Empty;
+        }
+
+        public static async Task<string> GetWebAppIISSupportStatusAsync(
+            UserInput userInputObj,
+            string[] subscriptions,
+            List<string> webAppSiteUrls)
+        {
+            var idHasSub = string.Join(" or ", subscriptions.Select(id => $"id has \"{id}\""));
+            var idHas = string.Join(" or ", webAppSiteUrls.Select(id => $"id has \"{id}\""));
+
+            var query = string.Format(WebAppIISSupportStatus, idHas, idHasSub, idHasSub);
+            var argPayload = CreateArgPayload(subscriptions, query);
+
+            try
+            {
+                // Execute query
+                var httpHelper = new HttpClientHelper();
+                HttpResponseMessage response = await httpHelper.GetHttpResponseForARGQuery(userInputObj, argPayload);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"ARG query failed: {response.StatusCode}: {errorContent}");
+                }
+
+                // Parse response
+                string jsonResponse = await response.Content.ReadAsStringAsync();
+                return jsonResponse;
+            }
+            catch (Exception ex)
+            {
+                // Treating as non-fatal for now.
+                userInputObj.LoggerObj?.LogError($"Failed to execute ARG Query: {ex.Message}");
+                userInputObj.LoggerObj?.LogDebug($"Full exception details: {ex}");
+            }
+
+            return string.Empty;
+        }
 
         public static async Task<string> GetAllInventoryDataFromDiscoveryAsync(
             UserInput userInputObj,

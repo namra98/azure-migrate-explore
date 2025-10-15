@@ -16,14 +16,21 @@ namespace Azure.Migrate.Explore.Excel
         private readonly DiscoveryProperties DiscoveryPropertiesData;
         private readonly vCenterHostDiscovery VCenterHostDiscoveryData;
         private readonly string DiscoveryDataFromARG;
+        private readonly string WebAppSupportabilityDataFromARG;
         XLWorkbook DiscoveryWb;
 
-        public ExportDiscoveryReport(List<DiscoveryData> discoveredData, vCenterHostDiscovery vCenterHostData, DiscoveryProperties discoveryPropertiesData, string discoveryDataFromARG = "")
+        public ExportDiscoveryReport(
+            List<DiscoveryData> discoveredData,
+            vCenterHostDiscovery vCenterHostData,
+            DiscoveryProperties discoveryPropertiesData,
+            string discoveryDataFromARG = "",
+            string webAppSupportabilityDataFromARG = "")
         {
             DiscoveredData = discoveredData;
             DiscoveryPropertiesData = discoveryPropertiesData;
             VCenterHostDiscoveryData = vCenterHostData;
             DiscoveryDataFromARG = discoveryDataFromARG;
+            WebAppSupportabilityDataFromARG = webAppSupportabilityDataFromARG;
             DiscoveryWb = new XLWorkbook();
         }
 
@@ -33,16 +40,11 @@ namespace Azure.Migrate.Explore.Excel
             GenerateDiscoveryReportWorksheet();
             GeneratevCenterHostReportWorksheet();
             GenerateArgDataWorksheet();
+            GenerateWebAppSupportabilityDataWorksheet();
 
             DiscoveryWb.SaveAs(UtilityFunctions.GetReportsDirectory() + "\\" + DiscoveryReportConstants.DiscoveryReportName);
         }
 
-        private void GenerateArgDataWorksheet()
-        {
-            UtilityFunctions.SaveARGJsonDataToWorksheet(
-                DiscoveryDataFromARG,
-                DiscoveryWb.Worksheets.Add(DiscoveryReportConstants.ARGDataTabName, 4));
-        }
 
         private void GeneratePropertyWorksheet()
         {
@@ -85,6 +87,20 @@ namespace Azure.Migrate.Explore.Excel
 
             dataWs.Cell(2, 1).Value = VCenterHostDiscoveryData.vCenters;
             dataWs.Cell(2, 2).Value = VCenterHostDiscoveryData.Hosts;
+        }
+
+        private void GenerateArgDataWorksheet()
+        {
+            UtilityFunctions.SaveARGJsonDataToWorksheet(
+                DiscoveryDataFromARG,
+                DiscoveryWb.Worksheets.Add(DiscoveryReportConstants.ARGDataTabName, 4));
+        }
+
+        private void GenerateWebAppSupportabilityDataWorksheet()
+        {
+            UtilityFunctions.SaveARGJsonDataToWorksheet(
+                WebAppSupportabilityDataFromARG,
+                DiscoveryWb.Worksheets.Add(DiscoveryReportConstants.WebAppSupportabilityDataTabName, 5));
         }
     }
 }
