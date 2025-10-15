@@ -25,6 +25,7 @@ namespace Azure.Migrate.Explore.Common
         public static readonly List<string> SoftwareInsightsColumns = new List<string>
         {
             "Name",
+            "Provider",
             "Category",
             "Sub Category",
             "Support Status",
@@ -38,6 +39,7 @@ namespace Azure.Migrate.Explore.Common
             "SoftwareName",
             "Version",
             "Vulnerability",
+            "CveId",
             "Severity"
         };
     }
