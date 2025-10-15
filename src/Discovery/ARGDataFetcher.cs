@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace AzureMigrateExplore.Discovery
@@ -178,6 +179,79 @@ namespace AzureMigrateExplore.Discovery
                     ""Unknown""
                 )
                 | project serverId, webAppId, serverName, webAppName, serverType, displayName, tomcatVersion=""NA"", jvmVersion=""NA"", machineId, providerName, tomcatSupportStatus=""NA"", jvmSupportStatus=""NA"", IISSupportStatus=supportStatus, IISframeworkName=frameworkName, IISframeworkVersion=frameworkVersion";
+
+        private const string SoftwareInventoryInsights = @"
+                machinesinventoryinsightsresources
+                | where type in~ (
+                    ""Microsoft.OffAzure/vmwareSites/machines/inventoryInsights/software"",
+                    ""Microsoft.OffAzure/hypervSites/machines/inventoryInsights/software"",
+                    ""Microsoft.OffAzure/serverSites/machines/inventoryInsights/software""
+                )
+                | where {0}
+                | parse id with machineId ""/inventoryInsights/default"" *
+                | extend Category = tostring(properties.category),
+                    Software = tostring(properties.softwareName),
+                    Version = tostring(properties.version),
+                    SupportStatus = tostring(properties.supportStatus),
+                    PotentialTargets = tostring(properties.potentialTargets)
+                | where isnotempty(Category) and isnotempty(Software)
+                | where Category in ('Security & Compliance', 'Monitoring & Operations', 'Infrastructure Management', 'Productivity & Collaboration', 'Business Applications')
+                | summarize Coverage = dcount(machineId), Machine_SoftwareEoS = dcountif(machineId, SupportStatus =~ ""End of Support"") by Category, Software, PotentialTargets
+                | extend category_rank = case(
+                    Category == ""Security & Compliance"", 0,
+                    Category == ""Monitoring & Operations"", 1,
+                    Category == ""Infrastructure Management"", 2,
+                    Category == ""Productivity & Collaboration"", 3,
+                    Category == ""Business Applications"", 4,
+                    5
+                )
+                | where category_rank != 5
+                | sort by category_rank asc, Coverage desc
+                | extend rank = row_number(1, prev(Category) != Category)
+                | where rank <= 10
+                | extend internal_rank = iif(rank <= 2, (2 * category_rank) + rank, (10 * (category_rank + 1)) + rank -2)
+                | order by internal_rank asc
+                | top 10 by internal_rank asc
+                | project Category, category_rank, Software, Coverage, PotentialTargets, Machine_SoftwareEoS, internal_rank
+                | extend Machine_SoftwareEoS_Percentage = (Machine_SoftwareEoS/Coverage)*100
+                | sort by category_rank asc, Coverage desc";
+
+        public static async Task<string> GetSoftwareInventoryInsightsAsync(
+            UserInput userInputObj,
+            string[] subscriptions,
+            List<string> siteUrls)
+        {
+            var idHas = string.Join(" or ", siteUrls.Select(id => $"id has \"{id}\""));
+
+            var query = string.Format(SoftwareInventoryInsights, idHas);
+            var argPayload = CreateArgPayload(subscriptions, query);
+
+            try
+            {
+                // Execute query
+                var httpHelper = new HttpClientHelper();
+                HttpResponseMessage response = await httpHelper.GetHttpResponseForARGQuery(userInputObj, argPayload);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"ARG query failed: {response.StatusCode}: {errorContent}");
+                }
+
+                // Parse response
+                string jsonResponse = await response.Content.ReadAsStringAsync();
+                return jsonResponse;
+            }
+            catch (Exception ex)
+            {
+                // Treating as non-fatal for now.
+                userInputObj.LoggerObj?.LogError($"Failed to execute ARG Query: {ex.Message}");
+                userInputObj.LoggerObj?.LogDebug($"Full exception details: {ex}");
+            }
+
+            return string.Empty;
+        }
+
 
         public static async Task<string> GetWebAppSupportStatusAsync(
             UserInput userInputObj,

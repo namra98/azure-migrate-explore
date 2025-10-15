@@ -106,12 +106,24 @@ namespace Azure.Migrate.Explore.Discovery
                 new string[] { UserInputObj.Subscription.Key },
                 allSites).GetAwaiter().GetResult();
 
+            // Fetch Software Inventory Insights.
+            var softwareInventoryInsights = ARGDataFetcher.GetSoftwareInventoryInsightsAsync(
+                UserInputObj,
+                new string[] { UserInputObj.Subscription.Key },
+                allSites).GetAwaiter().GetResult();
+
             UserInputObj.LoggerObj.LogInformation($"Retrieved discovery data for {DiscoveredData.Count.ToString()} machines");
 
             DiscoveryProperties discoveryProperties = new DiscoveryProperties();
             CreateDiscoveryPropertiesModel(discoveryProperties);
 
-            ExportDiscoveryReport exporter = new ExportDiscoveryReport(DiscoveredData, VCenterHostData, discoveryProperties, argData, webAppSupportability);
+            ExportDiscoveryReport exporter = new ExportDiscoveryReport(
+                DiscoveredData,
+                VCenterHostData,
+                discoveryProperties,
+                argData,
+                webAppSupportability,
+                softwareInventoryInsights);
             exporter.GenerateDiscoveryReportExcel();
 
             UserInputObj.LoggerObj.LogInformation(excelCreationPercentProgress, "Discovery report excel created successfully"); // IsExpressWorkflow ? 20 : 100 % Complete

@@ -17,6 +17,7 @@ namespace Azure.Migrate.Explore.Excel
         private readonly vCenterHostDiscovery VCenterHostDiscoveryData;
         private readonly string DiscoveryDataFromARG;
         private readonly string WebAppSupportabilityDataFromARG;
+        private readonly string SoftwareInventoryInsights;
         XLWorkbook DiscoveryWb;
 
         public ExportDiscoveryReport(
@@ -24,13 +25,15 @@ namespace Azure.Migrate.Explore.Excel
             vCenterHostDiscovery vCenterHostData,
             DiscoveryProperties discoveryPropertiesData,
             string discoveryDataFromARG = "",
-            string webAppSupportabilityDataFromARG = "")
+            string webAppSupportabilityDataFromARG = "",
+            string softwareInventoryInsights = "")
         {
             DiscoveredData = discoveredData;
             DiscoveryPropertiesData = discoveryPropertiesData;
             VCenterHostDiscoveryData = vCenterHostData;
             DiscoveryDataFromARG = discoveryDataFromARG;
             WebAppSupportabilityDataFromARG = webAppSupportabilityDataFromARG;
+            SoftwareInventoryInsights = softwareInventoryInsights;
             DiscoveryWb = new XLWorkbook();
         }
 
@@ -41,6 +44,7 @@ namespace Azure.Migrate.Explore.Excel
             GeneratevCenterHostReportWorksheet();
             GenerateArgDataWorksheet();
             GenerateWebAppSupportabilityDataWorksheet();
+            GenerateSoftwareInventoryInsightsWorksheet();
 
             DiscoveryWb.SaveAs(UtilityFunctions.GetReportsDirectory() + "\\" + DiscoveryReportConstants.DiscoveryReportName);
         }
@@ -101,6 +105,13 @@ namespace Azure.Migrate.Explore.Excel
             UtilityFunctions.SaveARGJsonDataToWorksheet(
                 WebAppSupportabilityDataFromARG,
                 DiscoveryWb.Worksheets.Add(DiscoveryReportConstants.WebAppSupportabilityDataTabName, 5));
+        }
+
+        private void GenerateSoftwareInventoryInsightsWorksheet()
+        {
+            UtilityFunctions.SaveARGJsonDataToWorksheet(
+                SoftwareInventoryInsights,
+                DiscoveryWb.Worksheets.Add(DiscoveryReportConstants.SoftwareInventoryInsightsTabName, 6));
         }
     }
 }
