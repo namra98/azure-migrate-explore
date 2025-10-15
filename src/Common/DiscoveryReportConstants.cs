@@ -12,6 +12,8 @@ namespace Azure.Migrate.Explore.Common
         public const string Discovery_Report_TabName = "Discovery_Report";
         public const string vCenterHost_Report_TabName = "vCenter_Host_Report";
         public const string ARGDataTabName = "ARGData";
+        public const string WebAppSupportabilityDataTabName = "WebAppSupportability";
+        public const string SoftwareInventoryInsightsTabName = "SoftwareInventoryInsights";
 
         public static readonly List<string> PropertiesList = new List<string>
         {
