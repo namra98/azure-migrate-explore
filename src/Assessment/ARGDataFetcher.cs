@@ -121,6 +121,7 @@ namespace AzureMigrateExplore.Assessment
             | extend
                 name = properties.softwareName,
                 category = properties.category,
+                provider = properties.provider,
                 subcategory = strcat_array(properties.subCategories, ', '),
                 supportStatus = properties.supportStatus,
                 version = properties.version,
@@ -130,6 +131,7 @@ namespace AzureMigrateExplore.Assessment
             | project
                 softwareId,
                 name,
+                provider,
                 category,
                 subcategory,
                 version,
@@ -176,6 +178,7 @@ namespace AzureMigrateExplore.Assessment
                 softwareName,
                 softwareVersion,
                 vulnerabilityId,
+                cveId = properties.cve,
                 riskLevel = properties.baseSeverity
             ";
 
@@ -418,6 +421,7 @@ namespace AzureMigrateExplore.Assessment
                         results.Add(new SoftwareInsights
                         {
                             Name = rowObject["name"]?.ToString() ?? string.Empty,
+                            Provider = rowObject["provider"]?.ToString() ?? string.Empty,
                             Category = rowObject["category"]?.ToString() ?? string.Empty,
                             SubCategory = rowObject["subcategory"]?.ToString() ?? string.Empty,
                             Version = rowObject["version"]?.ToString() ?? string.Empty,
@@ -487,6 +491,7 @@ namespace AzureMigrateExplore.Assessment
                             SoftwareName = rowObject["softwareName"]?.ToString() ?? string.Empty,
                             Version = rowObject["softwareVersion"]?.ToString() ?? string.Empty,
                             Vulnerability = rowObject["vulnerabilityId"]?.ToString() ?? string.Empty,
+                            CveId = rowObject["cveId"]?.ToString() ?? string.Empty,
                             Severity = rowObject["riskLevel"]?.ToString() ?? string.Empty
                         });
                     }
@@ -551,13 +556,14 @@ namespace AzureMigrateExplore.Assessment
                         var version = rowObject["version"]?.ToString() ?? string.Empty;
                         var resourceType = rowObject["resourceType"]?.ToString() ?? string.Empty;
                         var supportStatus = rowObject["supportStatus"]?.ToString() ?? string.Empty;
-                        var vulnerabilityCount = rowObject["vulnerabilityCount"]?.ToObject<int>() ?? 0;
-                        var criticalVulnerabilityCount = rowObject["criticalVulnerabilityCount"]?.ToObject<int>() ?? 0;
-                        var pendingUpdateCount = rowObject["pendingUpdateCount"]?.ToObject<int>() ?? 0;
-                        var endOfSupportSoftwareCount = rowObject["endOfSupportSoftwareCount"]?.ToObject<int>() ?? 0;
-                        var hasSecuritySoftware = rowObject["hasSecuritySoftware"]?.ToObject<bool>() ?? false;
-                        var hasPatchingSoftware = rowObject["hasPatchingSoftware"]?.ToObject<bool>() ?? false;
-                        
+                        var vulnerabilityCount = int.TryParse(rowObject["vulnerabilityCount"]?.ToString(), out var vulnVal) ? vulnVal : 0;
+                        var criticalVulnerabilityCount = int.TryParse(rowObject["criticalVulnerabilityCount"]?.ToString(), out var critVal) ? critVal : 0;
+                        var pendingUpdateCount = int.TryParse(rowObject["pendingUpdateCount"]?.ToString(), out var pendingVal) ? pendingVal : 0;
+                        var endOfSupportSoftwareCount = int.TryParse(rowObject["endOfSupportSoftwareCount"]?.ToString(), out var eosVal) ? eosVal : 0;
+
+                        var hasSecuritySoftware = bool.TryParse(rowObject["hasSecuritySoftware"]?.ToString(), out var hasSecVal) && hasSecVal;
+                        var hasPatchingSoftware = bool.TryParse(rowObject["hasPatchingSoftware"]?.ToString(), out var hasPatchVal) && hasPatchVal;
+
                         // Determine category based on resource type using centralized logic
                         var category = GetCategoryFromResourceType(resourceType);
                         

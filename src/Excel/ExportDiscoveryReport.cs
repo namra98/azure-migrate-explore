@@ -102,9 +102,13 @@ namespace Azure.Migrate.Explore.Excel
 
         private void GenerateWebAppSupportabilityDataWorksheet()
         {
+            var newWorkSheet = DiscoveryWb.Worksheets.Add(DiscoveryReportConstants.WebAppSupportabilityDataTabName, 5);
             UtilityFunctions.SaveARGJsonDataToWorksheet(
                 WebAppSupportabilityDataFromARG,
-                DiscoveryWb.Worksheets.Add(DiscoveryReportConstants.WebAppSupportabilityDataTabName, 5));
+                newWorkSheet);
+
+            // Add empty column.
+            UtilityFunctions.AddNewColumnToEnd(newWorkSheet, "SupportEndDate");
         }
 
         private void GenerateSoftwareInventoryInsightsWorksheet()
