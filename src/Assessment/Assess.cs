@@ -596,22 +596,14 @@ namespace Azure.Migrate.Explore.Assessment
                     {
                         // Machine IDs typically look like: /subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.OffAzure/{siteType}/machines/{machineId}
                         // We need to extract the site part for the filter
-                        if (machineId.Contains("/machines/"))
+                        int machineIndex = machineId.IndexOf("/machines/", StringComparison.OrdinalIgnoreCase);
+                        if (machineIndex > 0)
                         {
-                            // Extract just the site type and build a simple filter
-                            if (machineId.Contains("/vmwaresites/"))
-                                siteIds.Add("vmwaresites");
-                            else if (machineId.Contains("/hypervsites/"))
-                                siteIds.Add("hypervsites");
-                            else if (machineId.Contains("/serversites/"))
-                                siteIds.Add("serversites");
-                            else if (machineId.Contains("/importsites/"))
-                                siteIds.Add("importsites");
-                            else if (machineId.Contains("/mastersites/"))
-                                siteIds.Add("mastersites");
+                            string siteId = machineId.Substring(0, machineIndex);
+                            siteIds.Add(siteId);
                         }
                     }
-                    
+
                     // Remove duplicates and create site filter
                     siteIds = siteIds.Distinct().ToList();
                     
