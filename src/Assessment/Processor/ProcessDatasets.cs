@@ -49,9 +49,6 @@ namespace Azure.Migrate.Explore.Assessment.Processor
             SoftwareInsightsData = softwareInsightsData;
             SoftwareVulnerabilitiesData = softwareVulnerabilitiesData;
             PendingUpdatesServerCountsData = pendingUpdatesServerCountsData;
-
-            AzureIaaSCalculator = new AzureIaaSCostCalculator();
-            AzurePaaSCalculator = new AzurePaaSCostCalculator();
             AzureAvsCalculator = new AzureAvsCostCalculator();
             UserInputObj = userInputObj;
         }
