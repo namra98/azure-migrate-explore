@@ -230,16 +230,7 @@ namespace AzureMigrateExplore.Discovery
             {
                 // Execute query
                 var httpHelper = new HttpClientHelper();
-                HttpResponseMessage response = await httpHelper.GetHttpResponseForARGQuery(userInputObj, argPayload);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    string errorContent = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"ARG query failed: {response.StatusCode}: {errorContent}");
-                }
-
-                // Parse response
-                string jsonResponse = await response.Content.ReadAsStringAsync();
+                string jsonResponse = await httpHelper.GetHttpResponseForARGQueryWithPagination(userInputObj, argPayload);
                 return jsonResponse;
             }
             catch (Exception ex)
@@ -316,16 +307,7 @@ namespace AzureMigrateExplore.Discovery
             {
                 // Execute query
                 var httpHelper = new HttpClientHelper();
-                HttpResponseMessage response = await httpHelper.GetHttpResponseForARGQuery(userInputObj, argPayload);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    string errorContent = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"ARG query failed: {response.StatusCode}: {errorContent}");
-                }
-                
-                // Parse response
-                string jsonResponse = await response.Content.ReadAsStringAsync();
+                string jsonResponse = await httpHelper.GetHttpResponseForARGQueryWithPagination(userInputObj, argPayload);
                 return jsonResponse;
             }
             catch (Exception ex)
@@ -353,16 +335,7 @@ namespace AzureMigrateExplore.Discovery
             {
                 // Execute query
                 var httpHelper = new HttpClientHelper();
-                HttpResponseMessage response = await httpHelper.GetHttpResponseForARGQuery(userInputObj, argPayload);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    string errorContent = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"ARG query failed: {response.StatusCode}: {errorContent}");
-                }
-
-                // Parse response
-                string jsonResponse = await response.Content.ReadAsStringAsync();
+                string jsonResponse = await httpHelper.GetHttpResponseForARGQueryWithPagination(userInputObj, argPayload);
                 return jsonResponse;
             }
             catch (Exception ex)
@@ -390,16 +363,7 @@ namespace AzureMigrateExplore.Discovery
             {
                 // Execute query
                 var httpHelper = new HttpClientHelper();
-                HttpResponseMessage response = await httpHelper.GetHttpResponseForARGQuery(userInputObj, argPayload);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    string errorContent = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"ARG query failed: {response.StatusCode}: {errorContent}");
-                }
-
-                // Parse response
-                string jsonResponse = await response.Content.ReadAsStringAsync();
+                string jsonResponse = await httpHelper.GetHttpResponseForARGQueryWithPagination(userInputObj, argPayload);
                 return jsonResponse;
             }
             catch (Exception ex)

@@ -252,6 +252,135 @@ namespace Azure.Migrate.Explore.HttpRequestHelper
             }
             return response;
         }
+
+        /// <summary>
+        /// Executes an ARG query with automatic pagination support. 
+        /// Handles the 1000 record limit by automatically fetching all pages using skipToken.
+        /// Returns a consolidated JSON response with all data merged.
+        /// </summary>
+        public async Task<string> GetHttpResponseForARGQueryWithPagination(UserInput userInputObj, string bodyContent)
+        {
+            if (userInputObj.CancellationContext.IsCancellationRequested)
+                UtilityFunctions.InitiateCancellation(userInputObj);
+
+            var allRows = new JArray();
+            string skipToken = null;
+            int pageNumber = 0;
+            JObject firstResponseMetadata = null;
+
+            do
+            {
+                pageNumber++;
+                
+                // If we have a skipToken, modify the request body to include it
+                string currentBodyContent = bodyContent;
+                if (!string.IsNullOrEmpty(skipToken))
+                {
+                    var bodyObj = JObject.Parse(bodyContent);
+                    
+                    // Add or update the options with skipToken
+                    if (bodyObj["options"] == null)
+                    {
+                        bodyObj["options"] = new JObject();
+                    }
+                    
+                    bodyObj["options"]["$skipToken"] = skipToken;
+                    currentBodyContent = bodyObj.ToString();
+                    
+                    userInputObj.LoggerObj?.LogInformation($"ARG Query - Fetching page {pageNumber} with skipToken");
+                }
+                else
+                {
+                    userInputObj.LoggerObj?.LogInformation($"ARG Query - Fetching page {pageNumber}");
+                }
+
+                // Reset NumberOfTries for each page
+                NumberOfTries = 0;
+                
+                // Execute the query for this page
+                HttpResponseMessage response = await GetHttpResponseForARGQuery(userInputObj, currentBodyContent);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    userInputObj.LoggerObj?.LogError($"ARG query page {pageNumber} failed: {response.StatusCode}: {errorContent}");
+                    throw new Exception($"ARG query page {pageNumber} failed: {response.StatusCode}: {errorContent}");
+                }
+                
+                // Parse the response
+                string jsonResponse = await response.Content.ReadAsStringAsync();
+                var responseObj = JObject.Parse(jsonResponse);
+                
+                // Store metadata from the first response
+                if (pageNumber == 1)
+                {
+                    firstResponseMetadata = responseObj;
+                }
+                
+                // Extract the data rows
+                JArray pageRows = null;
+                if (responseObj["data"] is JObject dataObj && dataObj["rows"] is JArray rowsArray)
+                {
+                    pageRows = rowsArray;
+                }
+                else if (responseObj["data"] is JArray directArray)
+                {
+                    pageRows = directArray;
+                }
+                
+                if (pageRows != null && pageRows.Count > 0)
+                {
+                    // Merge rows into the consolidated result
+                    foreach (var row in pageRows)
+                    {
+                        allRows.Add(row);
+                    }
+                    
+                    userInputObj.LoggerObj?.LogInformation($"ARG Query - Page {pageNumber} returned {pageRows.Count} rows. Total accumulated: {allRows.Count}");
+                }
+                else
+                {
+                    userInputObj.LoggerObj?.LogInformation($"ARG Query - Page {pageNumber} returned 0 rows");
+                }
+                
+                // Extract skipToken for next iteration
+                skipToken = responseObj["$skipToken"]?.ToString();
+                
+            } while (!string.IsNullOrEmpty(skipToken));
+            
+            userInputObj.LoggerObj?.LogInformation($"ARG Query - Completed pagination. Total rows: {allRows.Count} across {pageNumber} page(s)");
+            
+            // Reconstruct the final response with all rows
+            if (firstResponseMetadata != null)
+            {
+                // Update the data section with all accumulated rows
+                if (firstResponseMetadata["data"] is JObject dataObj)
+                {
+                    dataObj["rows"] = allRows;
+                }
+                else
+                {
+                    firstResponseMetadata["data"] = allRows;
+                }
+                
+                // Update count and totalRecords if present
+                firstResponseMetadata["count"] = allRows.Count;
+                firstResponseMetadata["totalRecords"] = allRows.Count;
+                
+                // Remove skipToken from final response as we've fetched everything
+                firstResponseMetadata.Remove("$skipToken");
+                
+                return firstResponseMetadata.ToString();
+            }
+            
+            // Fallback: return a simple structure if no metadata was captured
+            return new JObject
+            {
+                ["data"] = allRows,
+                ["count"] = allRows.Count,
+                ["totalRecords"] = allRows.Count
+            }.ToString();
+        }
         #endregion
 
         #region Group creation and updation

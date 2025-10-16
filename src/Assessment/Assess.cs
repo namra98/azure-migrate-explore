@@ -562,6 +562,7 @@ namespace Azure.Migrate.Explore.Assessment
             List<InventoryInsights> InventoryInsightsData = new List<InventoryInsights>();
             List<SoftwareInsights> SoftwareInsightsData = new List<SoftwareInsights>();
             List<SoftwareVulnerabilities> SoftwareVulnerabilitiesData = new List<SoftwareVulnerabilities>();
+            List<PendingUpdatesServerCounts> PendingUpdatesServerCountsData = new List<PendingUpdatesServerCounts>();
 
             // Fetch inventory insights data using ARG queries
             try
@@ -618,8 +619,8 @@ namespace Azure.Migrate.Explore.Assessment
                     UserInputObj.LoggerObj.LogInformation($"Site IDs for filter: {string.Join(", ", siteIds)}");
                     try
                     {
-                        InventoryInsightsData = AzureMigrateExplore.Assessment.ARGQueryBuilder.GetInventoryInsightsData(
-                            UserInputObj, subscriptions, siteIds);
+                        InventoryInsightsData = AzureMigrateExplore.Assessment.ARGQueryBuilder.GetInventoryInsightsDataAsync(
+                            UserInputObj, subscriptions, siteIds).Result;
                         UserInputObj.LoggerObj.LogInformation($"Retrieved {InventoryInsightsData.Count} inventory insights records");
                     }
                     catch (Exception exInventory)
@@ -647,12 +648,25 @@ namespace Azure.Migrate.Explore.Assessment
                     try
                     {
                         SoftwareVulnerabilitiesData = AzureMigrateExplore.Assessment.ARGQueryBuilder.GetSoftwareVulnerabilitiesData(
-                            UserInputObj, subscriptions, machineIds).Result;
+                            UserInputObj, subscriptions, siteIds, machineIds).Result;
                         UserInputObj.LoggerObj.LogInformation($"Retrieved {SoftwareVulnerabilitiesData.Count} software vulnerabilities records");
                     }
                     catch (Exception exVulnerabilities)
                     {
                         UserInputObj.LoggerObj.LogWarning($"Failed to fetch software vulnerabilities data: {exVulnerabilities.Message}");
+                    }
+
+                    // Fetch pending updates data
+                    UserInputObj.LoggerObj.LogInformation("Fetching pending updates data from ARG");
+                    try
+                    {
+                        PendingUpdatesServerCountsData = AzureMigrateExplore.Assessment.ARGQueryBuilder.GetPendingUpdatesServerCountDataAsync(
+                            UserInputObj, subscriptions, siteIds).Result;
+                        UserInputObj.LoggerObj.LogInformation($"Retrieved {PendingUpdatesServerCountsData.Count} pending updates records");
+                    }
+                    catch (Exception exVulnerabilities)
+                    {
+                        UserInputObj.LoggerObj.LogWarning($"Failed to fetch pending updates counts data: {exVulnerabilities.Message}");
                     }
                 }
                 else
@@ -686,6 +700,7 @@ namespace Azure.Migrate.Explore.Assessment
                     InventoryInsightsData,
                     SoftwareInsightsData,
                     SoftwareVulnerabilitiesData,
+                    PendingUpdatesServerCountsData,
                     UserInputObj
                 );
             processorObj.InititateProcessing();

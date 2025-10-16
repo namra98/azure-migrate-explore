@@ -7,5 +7,6 @@
         public string Vulnerability { get; set; }
         public string CveId { get; set; }
         public string Severity { get; set; }
+        public int ServerCount { get; set; }
     }
 }
