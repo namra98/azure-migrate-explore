@@ -488,7 +488,7 @@ namespace Azure.Migrate.Explore.HttpRequestHelper
             string assessmentName,
             string resourceGraphQuery,
             List<string> allowedAssessmentResourceTypes,
-            Dictionary<string, object> assessmentSettings)
+            Dictionary<string, string> assessmentSettings)
         {
             userInputObj.LoggerObj.LogInformation($"Deploying assessment ARM template for {assessmentName}");
 
@@ -585,7 +585,16 @@ namespace Azure.Migrate.Explore.HttpRequestHelper
             // Apply user-provided overrides
             foreach (var kvp in assessmentSettings)
             {
-                baseParameters[kvp.Key] = new JObject { ["value"] = JToken.FromObject(kvp.Value) };
+                string? parameterValue = kvp.Value?.Trim();
+
+                if (string.IsNullOrWhiteSpace(parameterValue))
+                {
+                    userInputObj.LoggerObj.LogWarning($"Skipping ARM parameter '{kvp.Key}' because no value was provided.");
+                    continue;
+                }
+
+                userInputObj.LoggerObj.LogInformation($"Setting ARM parameter '{kvp.Key}' to '{parameterValue}'.");
+                baseParameters[kvp.Key] = new JObject { ["value"] = parameterValue };
             }
 
             // Construct deployment payload
@@ -598,6 +607,8 @@ namespace Azure.Migrate.Explore.HttpRequestHelper
                     ["mode"] = "Incremental"
                 }
             };
+
+            userInputObj.LoggerObj.LogInformation($"ARM deployment payload parameters: {baseParameters.ToString(Formatting.None)}");
 
             string deploymentName = $"assessment-{assessmentName}-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
             string url = $"https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Resources/deployments/{deploymentName}?api-version=2021-04-01";
@@ -1077,11 +1088,43 @@ namespace Azure.Migrate.Explore.HttpRequestHelper
 
         private static string GetAssessmentTemplatePath([CallerFilePath] string callerFilePath = "")
         {
-            string? directory = Path.GetDirectoryName(callerFilePath);
-            if (string.IsNullOrEmpty(directory))
-                throw new InvalidOperationException("Could not determine source directory for ARM template lookup.");
+            string? callerDirectory = string.IsNullOrEmpty(callerFilePath) ? null : Path.GetDirectoryName(callerFilePath);
 
-            return Path.Combine(directory, "AssessmentArmTemplate.json");
+            // Probe likely locations in priority order so packaging scenarios work without hard-coded build paths.
+            string[] candidatePaths = new[]
+            {
+                // Deployment build output keeps helper assets under a matching folder for clarity.
+                Path.Combine(AppContext.BaseDirectory, "HttpRequestHelper", "AssessmentArmTemplate.json"),
+                // Flat copy alongside binaries if build pipeline flattens content.
+                Path.Combine(AppContext.BaseDirectory, "AssessmentArmTemplate.json"),
+                // Fallback to source-relative location when running from source tree.
+                callerDirectory == null ? null : Path.Combine(callerDirectory, "AssessmentArmTemplate.json")
+            }.Where(path => !string.IsNullOrWhiteSpace(path)).ToArray();
+
+            foreach (string path in candidatePaths)
+            {
+                if (File.Exists(path))
+                    return path;
+            }
+
+            // As a last resort search beneath the app base directory to support custom packaging layouts.
+            try
+            {
+                string? discovered = Directory
+                    .EnumerateFiles(AppContext.BaseDirectory, "AssessmentArmTemplate.json", SearchOption.AllDirectories)
+                    .FirstOrDefault();
+
+                if (!string.IsNullOrEmpty(discovered))
+                    return discovered;
+            }
+            catch (Exception)
+            {
+                // Ignore search errors and fall through to a descriptive failure.
+            }
+
+            throw new FileNotFoundException(
+                "ARM template not found in application directory. Ensure AssessmentArmTemplate.json is packaged with the build.",
+                candidatePaths.LastOrDefault() ?? "AssessmentArmTemplate.json");
         }
     }
 }

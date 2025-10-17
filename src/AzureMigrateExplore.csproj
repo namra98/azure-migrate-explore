@@ -155,12 +155,18 @@
     <None Update="Azure_Migration_and_Modernization.pbit">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="SoftwareAndSecurityInsights.pbit">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="AVS_Migration.pbit">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
 	<None Update="settings.ini">
 		<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	</None>
+    <None Update="HttpRequestHelper\AssessmentArmTemplate.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Properties\PublishProfiles\FolderProfile.pubxml">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
