@@ -21,6 +21,7 @@ namespace Azure.Migrate.Explore.Assessment.Processor
         private readonly List<InventoryInsights> InventoryInsightsData;
         private readonly List<SoftwareInsights> SoftwareInsightsData;
         private readonly List<SoftwareVulnerabilities> SoftwareVulnerabilitiesData;
+        private readonly List<PendingUpdatesServerCounts> PendingUpdatesServerCountsData;
 
         private AzureAvsCostCalculator AzureAvsCalculator;
 
@@ -35,6 +36,7 @@ namespace Azure.Migrate.Explore.Assessment.Processor
                 List<InventoryInsights> inventoryInsightsData,
                 List<SoftwareInsights> softwareInsightsData,
                 List<SoftwareVulnerabilities> softwareVulnerabilitiesData,
+                List<PendingUpdatesServerCounts> pendingUpdatesServerCountsData,
 
                 UserInput userInputObj
             )
@@ -46,6 +48,7 @@ namespace Azure.Migrate.Explore.Assessment.Processor
             InventoryInsightsData = inventoryInsightsData;
             SoftwareInsightsData = softwareInsightsData;
             SoftwareVulnerabilitiesData = softwareVulnerabilitiesData;
+            PendingUpdatesServerCountsData = pendingUpdatesServerCountsData;
             AzureAvsCalculator = new AzureAvsCostCalculator();
             UserInputObj = userInputObj;
         }
@@ -81,6 +84,7 @@ namespace Azure.Migrate.Explore.Assessment.Processor
             List<InventoryInsights> Inventory_Insights_List = new List<InventoryInsights>();
             List<SoftwareInsights> Software_Insights_List = new List<SoftwareInsights>();
             List<SoftwareVulnerabilities> Software_Vulnerabilities_List = new List<SoftwareVulnerabilities>();
+            List<PendingUpdatesServerCounts> PendingUpdates_ServerCounts_List = new List<PendingUpdatesServerCounts>();
 
             // Core report tabs
             CreateCorePropertiesModel(corePropertiesObj);
@@ -96,6 +100,7 @@ namespace Azure.Migrate.Explore.Assessment.Processor
             Process_Inventory_Insights_Model(Inventory_Insights_List);
             Process_Software_Insights_Model(Software_Insights_List);
             Process_Software_Vulnerabilities_Model(Software_Vulnerabilities_List);
+            Process_PendingUpdates_ServerCounts_Model(PendingUpdates_ServerCounts_List);
 
             UserInputObj.LoggerObj.LogInformation(90 - UserInputObj.LoggerObj.GetCurrentProgress(), "Completed job for creating excel models");
 
@@ -123,7 +128,8 @@ namespace Azure.Migrate.Explore.Assessment.Processor
                 (
                     Inventory_Insights_List,
                     Software_Insights_List,
-                    Software_Vulnerabilities_List
+                    Software_Vulnerabilities_List,
+                    PendingUpdates_ServerCounts_List
                 );
             exportSecurityAndSoftwareInsightReportObj.GenerateSecurityAndSoftwareInsightReportExcel();
         }
@@ -633,6 +639,17 @@ namespace Azure.Migrate.Explore.Assessment.Processor
             foreach (var vulnerability in SoftwareVulnerabilitiesData)
             {
                 softwareVulnerabilitiesList.Add(vulnerability);
+            }
+        }
+
+        private void Process_PendingUpdates_ServerCounts_Model(List<PendingUpdatesServerCounts> pendingUpdatesServerCountsList)
+        {
+            if (PendingUpdatesServerCountsData == null || PendingUpdatesServerCountsData.Count == 0)
+                return;
+
+            foreach (var update in PendingUpdatesServerCountsData)
+            {
+                pendingUpdatesServerCountsList.Add(update);
             }
         }
     }
