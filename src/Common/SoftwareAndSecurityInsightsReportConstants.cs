@@ -47,7 +47,7 @@ namespace Azure.Migrate.Explore.Common
         public static readonly List<string> PendingUpdatesTabNameColumns = new List<string>
         {
             "Update Name",
-            "Servers",
+            "Servers"
         };
     }
 }
