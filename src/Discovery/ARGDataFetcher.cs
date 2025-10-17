@@ -73,9 +73,10 @@ namespace AzureMigrateExplore.Discovery
                     depmapErrorCount = array_length(properties.dependencyMapDiscovery.errors),
                     source = case(['type'] contains ""vmwaresites"", properties.vCenterFQDN, ['type'] contains ""hypervsites"", coalesce(properties.clusterFqdn, properties.hostFqdn), """"),
                     numberOfSecurityRisks = properties.numberOfSecurityRisks,
-                    numberOfApplications = properties.numberOfApplications
+                    numberOfApplications = properties.numberOfApplications,
+                    arcStatus = tostring(properties.arcDiscovery.status)
                 | order by tolower(resourceName) asc
-                | project id, parentId, resourceName, resourceType, edition, version, properties.dependencyMapping, properties.productSupportStatus.supportStatus, discoverySource, source, properties.tags, properties, dbProperties, properties.numberOfProcessorCore, memoryInMB, diskCount, totalSizeInGB, osType, supportEndsIn, powerOnStatus, siteId, dbProperties.status, dbProperties.numberOfUserDatabases, dbhadrConfiguration, depmapErrorCount, properties.dependencyMapDiscovery.discoveryScopeStatus, properties.autoEnableDependencyMapping, ipAddressList, totalDatabaseInstances, totalWebAppCount, webServerId, webServerVersion, webServerType
+                | project id, parentId, resourceName, resourceType, edition, version, properties.dependencyMapping, properties.productSupportStatus.supportStatus, discoverySource, source, properties.tags, properties, dbProperties, properties.numberOfProcessorCore, memoryInMB, diskCount, totalSizeInGB, osType, supportEndsIn, powerOnStatus, siteId, dbProperties.status, dbProperties.numberOfUserDatabases, dbhadrConfiguration, depmapErrorCount, properties.dependencyMapDiscovery.discoveryScopeStatus, properties.autoEnableDependencyMapping, ipAddressList, totalDatabaseInstances, totalWebAppCount, webServerId, webServerVersion, webServerType, arcStatus
                 | project-rename armId=id, dependencyMapping=properties_dependencyMapping, supportStatus=properties_productSupportStatus_supportStatus, resourceTags=properties_tags, cores=properties_numberOfProcessorCore, dbEngineStatus=dbProperties_status, userdatabases=dbProperties_numberOfUserDatabases, depMapDiscoveryScopeStatus=properties_dependencyMapDiscovery_discoveryScopeStatus, autoEnableDependencyMapping=properties_autoEnableDependencyMapping";
 
         private static string WebAppTomCatSupportStatus = @"
