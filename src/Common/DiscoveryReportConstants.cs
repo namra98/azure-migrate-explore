@@ -25,7 +25,7 @@ namespace Azure.Migrate.Explore.Common
             "Workflow",
             "Source Appliances",
             "Azure Migrate Explore Version",
-            "Report Generated On"
+            "Report Generated On (UTC)"
         };
 
         public static readonly List<string> DiscoveryReportColumns = new List<string>

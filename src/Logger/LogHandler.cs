@@ -16,8 +16,7 @@ namespace Azure.Migrate.Explore.Logger
     {
         private BlockingCollection<LogParameters> LogsConsumer;
         private static readonly object _FileLock = new object();
-        private static readonly string _FilePath = Path.Combine(AppContext.BaseDirectory, LoggerConstants.LogFileName);
-
+        private static string _FilePath;
         public EventHandler<LogEventHandler> ReportProgress;
 
         private int PercentProgress;
@@ -26,6 +25,13 @@ namespace Azure.Migrate.Explore.Logger
         {
             LogsConsumer = new BlockingCollection<LogParameters>();
             PercentProgress = 0;
+
+            if (!Directory.Exists(Path.Combine(AppContext.BaseDirectory, "Project Reports")))
+            {
+                Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, "Project Reports"));
+            }
+            _FilePath = Path.Combine(AppContext.BaseDirectory, "Project Reports", LoggerConstants.LogFileName);
+
             StartLoggingTask();
         }
 
